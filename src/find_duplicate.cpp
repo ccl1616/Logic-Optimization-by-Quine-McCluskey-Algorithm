@@ -15,30 +15,46 @@
 
 using namespace std;
 
+// count the literals
+int literal_count(set<string> minterms)
+{
+    int count = 0;
+    for(auto i: minterms)
+        for(auto j: i) 
+            if(j != '-') count ++;
+    return count;
+}
+
 int main (int argc, char* argv[])
 {
     string path(argv[1]);
     ifstream cin("./testcases/" + path); // depend on compiled relative path
-    // ofstream cout(argv[2]);
+    ofstream cout(argv[2]);
 
-    set<string> inputs;
     int var, pro;
     cin >> var >> pro;
 
     // get inputs
     string temp;
-    set<string> S;
+    set<string> input_set;
     bool duplicate = false;
-    set<string> S_d;
+    set<string> dup;
     while(cin >> temp)
     {
-        if(S.find(temp) == S.end()) S.insert(temp);
+        if(input_set.find(temp) == input_set.end()) input_set.insert(temp);
         else {
-            S_d.insert(temp);
+            dup.insert(temp);
         }
     }
-    if(S_d.size() != 0) 
-        for(auto i: S_d) cout << i << endl;
-    else cout << "none duplicate\n";
+    // if(S_d.size() != 0) 
+    //     for(auto i: S_d) cout << i << endl;
+    // else cout << "none duplicate\n";
+
+    // print out the non-duplicate input list, and do the verify
+    cout << literal_count(input_set) << endl;
+    cout << input_set.size() << endl;
+    for(auto i: input_set)
+        cout << i << endl;
+
     return 0;
 }
