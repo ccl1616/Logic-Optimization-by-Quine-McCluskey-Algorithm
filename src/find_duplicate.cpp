@@ -29,11 +29,16 @@ int main (int argc, char* argv[])
     string temp;
     set<string> S;
     bool duplicate = false;
+    set<string> S_d;
     while(cin >> temp)
     {
         if(S.find(temp) == S.end()) S.insert(temp);
-        else duplicate = true;
+        else {
+            S_d.insert(temp);
+        }
     }
-    cout << "duplicate: " << duplicate << endl;
+    if(S_d.size() != 0) 
+        for(auto i: S_d) cout << i << endl;
+    else cout << "none duplicate\n";
     return 0;
 }

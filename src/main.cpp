@@ -29,7 +29,7 @@ QM(int a)
    dontcares.append(a,'-');
 }
 
-//function to check if two terms differ by just one bit
+// function to check if two terms differ by just one bit
 bool isGreyCode(string a,string b)
 {
     int flag=0;
@@ -41,7 +41,7 @@ bool isGreyCode(string a,string b)
     return (flag==1);
 }
 
-//function to replace complement terms with don't cares
+// function to replace complement terms with don't cares
 // Eg: 0110 and 0111 becomes 011-
 string replace_complements(string a,string b)
 {
@@ -55,7 +55,7 @@ string replace_complements(string a,string b)
     return temp;
 }
 
-//function to check if string b exists in vector a
+// function to check if string b exists in vector a
 bool in_vector(vector<string> a,string b)
 {
     for(int i=0;i<a.size();i++)
@@ -64,7 +64,7 @@ bool in_vector(vector<string> a,string b)
     return false;
 }
 
-//function to reduce minterms
+// function to reduce minterms
 vector<string> reduce(vector<string> minterms)
 {
 
@@ -87,7 +87,7 @@ vector<string> reduce(vector<string> minterms)
         }
     }
 
-    //appending all reduced terms to a new vector
+    // appending all reduced terms to a new vector
     for(int i=0;i<max;i++)
     {
         //cout<<checked[i]<<endl;
@@ -100,7 +100,7 @@ vector<string> reduce(vector<string> minterms)
     return newminterms;
 }
 
-//function to check if 2 vectors are equal
+// function to check if 2 vectors are equal
 bool VectorsEqual(vector<string> a,vector<string> b)
 {
    if(a.size()!=b.size())
@@ -153,7 +153,7 @@ int main (int argc, char* argv[])
     do
     {
         minterms=q.reduce(minterms);
-        sort(minterms.begin(),minterms.end());
+        // sort(minterms.begin(),minterms.end());
     }while(!q.VectorsEqual(minterms,q.reduce(minterms)));
 
     cout << q.literal_count(minterms) << endl << minterms.size() << endl;
