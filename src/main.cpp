@@ -27,41 +27,40 @@ QM(int a)
 {
    VARIABLES=a;
    dontcares.append(a,'-');
-
 }
 
 //function to check if two terms differ by just one bit
 bool isGreyCode(string a,string b)
 {
-   int flag=0;
-   for(int i=0;i<a.length();i++)
-   {
-       if(a[i]!=b[i])
+    int flag=0;
+    for(int i=0;i<a.length();i++)
+    {
+        if(a[i]!=b[i])
         flag++;
-   }
-   return (flag==1);
+    }
+    return (flag==1);
 }
 
 //function to replace complement terms with don't cares
 // Eg: 0110 and 0111 becomes 011-
 string replace_complements(string a,string b)
 {
-   string temp="";
-   for(int i=0;i<a.length();i++)
-   if(a[i]!=b[i])
-       temp=temp+"-";
-   else
-       temp=temp+a[i];
+    string temp="";
+    for(int i=0;i<a.length();i++)
+    if(a[i]!=b[i])
+        temp=temp+"-";
+    else
+        temp=temp+a[i];
 
-   return temp;
+    return temp;
 }
 
 //function to check if string b exists in vector a
 bool in_vector(vector<string> a,string b)
 {
-   for(int i=0;i<a.size();i++)
-     if(a[i].compare(b)==0)
-      return true;
+    for(int i=0;i<a.size();i++)
+        if(a[i].compare(b)==0)
+        return true;
     return false;
 }
 
@@ -69,36 +68,36 @@ bool in_vector(vector<string> a,string b)
 vector<string> reduce(vector<string> minterms)
 {
 
-      vector<string> newminterms;
+    vector<string> newminterms;
 
-      int max=minterms.size();
-      int* checked = new int[max];
-      for(int i=0;i<max;i++)
-      {
-          for(int j=i;j<max;j++)
-          {
-               //If a grey code pair is found, replace the differing bits with don't cares.
-               if(isGreyCode(minterms[i],minterms[j]))
-               {
-                  checked[i]=1;
-                  checked[j]=1;
-                  if(!in_vector(newminterms,replace_complements(minterms[i],minterms[j])))
-                     newminterms.push_back(replace_complements(minterms[i],minterms[j]));
-               }
-          }
-      }
+    int max=minterms.size();
+    int* checked = new int[max];
+    for(int i=0;i<max;i++)
+    {
+        for(int j=i;j<max;j++)
+        {
+            //If a grey code pair is found, replace the differing bits with don't cares.
+            if(isGreyCode(minterms[i],minterms[j]))
+            {
+                checked[i]=1;
+                checked[j]=1;
+                if(!in_vector(newminterms,replace_complements(minterms[i],minterms[j])))
+                    newminterms.push_back(replace_complements(minterms[i],minterms[j]));
+            }
+        }
+    }
 
-      //appending all reduced terms to a new vector
-      for(int i=0;i<max;i++)
-      {
-          //cout<<checked[i]<<endl;
-          if(checked[i]!=1 && ! in_vector(newminterms,minterms[i]))
-           newminterms.push_back(minterms[i]);
-      }
+    //appending all reduced terms to a new vector
+    for(int i=0;i<max;i++)
+    {
+        //cout<<checked[i]<<endl;
+        if(checked[i]!=1 && ! in_vector(newminterms,minterms[i]))
+        newminterms.push_back(minterms[i]);
+    }
 
-       delete[] checked;
-   
-       return newminterms;
+    delete[] checked;
+    sort(minterms.begin(),minterms.end());
+    return newminterms;
 }
 
 //function to check if 2 vectors are equal
