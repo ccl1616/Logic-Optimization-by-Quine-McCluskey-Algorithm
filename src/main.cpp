@@ -15,7 +15,7 @@
 
 using namespace std;
 
-// set version
+// set input, then dump to vector (failed)
 
 //Main class
 class QM
@@ -135,7 +135,7 @@ int literal_count(vector<string> minterms)
 int main (int argc, char* argv[])
 {
     string path(argv[1]);
-    ifstream cin("./testcases/" + path); // depend on compiled relative path
+    ifstream cin("./testcases/" + path); // depend on execution file relative path
     ofstream cout(argv[2]);
 
     int var, pro;
@@ -146,17 +146,17 @@ int main (int argc, char* argv[])
     string temp;
     vector<string> minterms;
     set<string> input_set;
+    // while(cin >> temp)
+    // {
+    //     input_set.insert(temp); // error result
+    // }
+    // for(auto i: input_set)
+    //     minterms.push_back(i);
+
     while(cin >> temp)
     {
-        // only push_back when first appear
-        // if(input_set.find(temp) == input_set.end()) {
-        //     minterms.push_back(temp);
-        //     input_set.insert(temp);
-        // }
-
         minterms.push_back(temp);
     }
-
     sort(minterms.begin(),minterms.end());
 
     do
