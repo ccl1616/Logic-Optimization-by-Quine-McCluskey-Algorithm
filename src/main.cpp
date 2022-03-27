@@ -15,7 +15,7 @@
 
 using namespace std;
 
-// stable vector version
+// set version, pass all testcases
 
 //Main class
 class QM
@@ -57,69 +57,59 @@ string replace_complements(string a,string b)
     return temp;
 }
 
-// function to check if string b exists in vector a
-bool in_vector(vector<string> a,string b)
-{
-    for(int i = 0; i < a.size(); i ++)
-        if(a[i] == b)
-            return true;
-    return false;
-}
-
 // function to reduce minterms
-vector<string> reduce(vector<string> minterms)
+set<string> reduce(set<string> &minterms)
 {
 
-    vector<string> newminterms;
-
+    set<string> newminterms;
+    set<string> checked;
     int n = minterms.size();
-    int* checked = new int[n];
-    for(int i = 0; i < n; i ++)
-    {
-        for(int j = i; j < n; j ++)
-        {
-            //If a grey code pair is found, replace the differing bits with don't cares.
-            if(isGreyCode(minterms[i],minterms[j]))
+
+    set<string>::iterator it = minterms.begin();
+    set<string>::iterator it_b = minterms.begin();
+    for(it = minterms.begin(); it != minterms.end(); it ++) {
+        for(it_b = minterms.begin(); it_b != minterms.end(); it_b ++) {
+            string temp_a = (*it);
+            string temp_b = (*it_b);
+            if(isGreyCode(temp_a, temp_b))
             {
-                checked[i] = 1;
-                checked[j] = 1;
-                if(!in_vector(newminterms,replace_complements(minterms[i],minterms[j])))
-                    newminterms.push_back(replace_complements(minterms[i],minterms[j]));
+                string replaced = replace_complements(temp_a, temp_b); 
+                newminterms.insert(replaced);
+
+                checked.insert(temp_a);
+                checked.insert(temp_b);
             }
         }
     }
 
-    // appending all reduced terms to a new vector
-    for(int i = 0; i < n; i ++)
-    {
-        //cout<<checked[i]<<endl;
-        if(checked[i] != 1 && ! in_vector(newminterms,minterms[i]))
-        newminterms.push_back(minterms[i]);
+    // appending non checked
+    for(it = minterms.begin(); it != minterms.end(); it ++){
+        if(checked.find(*it) == checked.end())
+            newminterms.insert(*it);
     }
-
-    delete[] checked;
-    sort(minterms.begin(),minterms.end());
     return newminterms;
 }
 
-// function to check if 2 vectors are equal
-bool VectorsEqual(vector<string> a,vector<string> b)
+// function to check if 2 sets are equal
+bool SetEqual(set<string> a,set<string> b)
 {
-   if(a.size()!=b.size())
+   if(a.size() != b.size())
       return false;
 
-    sort(a.begin(),a.end());
-    sort(b.begin(),b.end());
-    for(int i=0;i<a.size();i++)
+    set<string>::iterator it;
+    set<string>::iterator it_b = b.begin();
+    for(it = a.begin(); it != a.end(); it ++, it_b ++)
     {
-        if(a[i]!=b[i])
-        return false;
+        string temp_a = (*it);
+        string temp_b = (*it_b);
+        if( temp_a.compare(temp_b) != 0)
+            return false;
     }
     return true;
 }
 
 // count the literals
-int literal_count(vector<string> minterms)
+int literal_count(set<string> minterms)
 {
     int count = 0;
     for(auto i: minterms)
@@ -143,27 +133,17 @@ int main (int argc, char* argv[])
 
     // get inputs
     string temp;
-    vector<string> minterms;
-    set<string> input_set;
-    // while(cin >> temp)
-    // {
-    //     input_set.insert(temp); // error result
-    // }
-    // for(auto i: input_set)
-    //     minterms.push_back(i);
-
+    set<string> minterms;
     while(cin >> temp)
     {
-        minterms.push_back(temp);
+        minterms.insert(temp);
     }
-    sort(minterms.begin(),minterms.end());
-
+    int times = 0;
     do
     {
+        times ++;
         minterms=q.reduce(minterms);
-        sort(minterms.begin(),minterms.end());
-    }while(!q.VectorsEqual(minterms,q.reduce(minterms)) );
-    // }while(! (minterms == q.reduce(minterms)) ); // this would cause error
+    }while(!q.SetEqual(minterms,q.reduce(minterms)) );
 
     cout << q.literal_count(minterms) << endl << minterms.size() << endl;
     for(auto i: minterms)
