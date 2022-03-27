@@ -1,0 +1,31 @@
+Download abc code from https://github.com/berkeley-abc/abc
+Download verifier.tar.gz from eeclass
+type following commands:
+
+unzip abc-master.zip
+tar -zxvf verifier.tar.gz
+cd abc-master
+make
+cp abc ../verifier
+
+Make sure all output files' names follow the rule in spec.
+Put all input files and output files in ./verifier
+	You can use "mv *.in ./verifier" to move your input file.
+
+Go into ./verifier than type the following commands:
+
+chmod 777 *.sh
+chmod 777 convert_2_blif
+chmod 777 eq_check
+
+Usage:
+	If you want to verify just one case
+	./verify.sh <testcase's name>
+	e.g.
+	./verify.sh case00
+
+	If you want to verify all cases
+	./verify_all.sh
+
+Output:
+	If your result file have something wrong, it will print "[error] : .....", otherwise, it will print "[success] : score : your score".

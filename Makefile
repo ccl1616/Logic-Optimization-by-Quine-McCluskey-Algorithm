@@ -7,6 +7,7 @@ all:
 
 clean:
 	rm $(EXE)
+	rm *.out
 	
 # RES = src/find_duplicate.cpp
 # EXE = find

@@ -103,20 +103,20 @@ vector<string> reduce(vector<string> minterms)
 }
 
 // function to check if 2 vectors are equal
-// bool VectorsEqual(vector<string> a,vector<string> b)
-// {
-//    if(a.size()!=b.size())
-//       return false;
+bool VectorsEqual(vector<string> a,vector<string> b)
+{
+   if(a.size()!=b.size())
+      return false;
 
-//     sort(a.begin(),a.end());
-//     sort(b.begin(),b.end());
-//     for(int i=0;i<a.size();i++)
-//     {
-//         if(a[i]!=b[i])
-//         return false;
-//     }
-//     return true;
-// }
+    sort(a.begin(),a.end());
+    sort(b.begin(),b.end());
+    for(int i=0;i<a.size();i++)
+    {
+        if(a[i]!=b[i])
+        return false;
+    }
+    return true;
+}
 
 // count the literals
 int literal_count(vector<string> minterms)
@@ -162,8 +162,8 @@ int main (int argc, char* argv[])
     {
         minterms=q.reduce(minterms);
         sort(minterms.begin(),minterms.end());
-    // }while(!q.VectorsEqual(minterms,q.reduce(minterms)) );
-    }while(! (minterms == q.reduce(minterms)) );
+    }while(!q.VectorsEqual(minterms,q.reduce(minterms)) );
+    // }while(! (minterms == q.reduce(minterms)) ); // this would cause error
 
     cout << q.literal_count(minterms) << endl << minterms.size() << endl;
     for(auto i: minterms)
