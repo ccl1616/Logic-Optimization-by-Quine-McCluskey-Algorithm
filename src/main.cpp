@@ -15,7 +15,7 @@
 
 using namespace std;
 
-// set input, then dump to vector (failed)
+// stable vector version
 
 //Main class
 class QM
