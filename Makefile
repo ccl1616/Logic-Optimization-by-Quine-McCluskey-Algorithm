@@ -1,6 +1,6 @@
 # sample Makefile
 
-RES = src/main.cpp
+RES = src/main_set.cpp
 EXE = pa1
 all:
 	g++ -std=c++11 $(RES) -o $(EXE)
