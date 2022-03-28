@@ -1,6 +1,6 @@
 # sample Makefile
 
-RES = src/main_expand.cpp
+RES = src/main_expand_cc.cpp
 EXE = pa1
 all:
 	g++ -std=c++11 $(RES) -o $(EXE)
