@@ -11,13 +11,16 @@
 #include <cstring>
 #include <math.h>
 #include <set>
+#include <map>
+#include <queue>
 #include <fstream>
-
 using namespace std;
 
-// set version, pass all testcases
+bool expand_flag = true;
+bool cc_flag = true; // column covering or not
+// var dependent expand + column covering; most stable version
 
-//Main class
+// QM class
 class QM
 {
 public:
@@ -27,9 +30,55 @@ string dontcares;
 
 QM(int a)
 {
-   VARIABLES=a;
-   dontcares.append(a,'-');
+   VARIABLES = a;
 }
+
+// expand the dont care
+void trans(set<string> &st)
+{
+    for(auto s: st) {
+        for(int i = 0; i < s.size(); i ++) {
+            if(s[i] == '-') {
+                string b = s;
+                b[i] = '0'; st.insert(b);
+                b[i] = '1'; st.insert(b);
+                st.erase(s);
+            }
+        }
+    }
+}
+bool set_clean(set<string> st)
+{
+    for(auto i: st) {
+        if(i.find('-') < i.size()) return false;
+    }
+    return true;
+} 
+set<string> expand(string in)
+{
+    set<string> ret;
+    queue<string> Q;
+    // insert all terms into Q
+    Q.push(in);
+    // while Q not empty
+    while(!Q.empty()) {
+        string temp = Q.front();
+        Q.pop();
+        if(temp.find('-') == string::npos) {
+            ret.insert(temp);
+            continue;
+        }
+        for(int i = 0; i < temp.size(); i ++) {
+            if(temp[i] == '-') {
+                temp[i] = '0'; Q.push(temp);
+                temp[i] = '1'; Q.push(temp);
+                break;
+            }
+        }
+    }
+    return ret;
+}
+// expand the dont care end
 
 // function to check if two terms differ by just one bit
 bool isGreyCode(string a,string b)
@@ -43,8 +92,7 @@ bool isGreyCode(string a,string b)
     return (flag == 1);
 }
 
-// function to replace complement terms with don't cares
-// Eg: 0110 and 0111 becomes 011-
+// function to replace complements with '-'
 string replace_complements(string a,string b)
 {
     string temp="";
@@ -118,7 +166,62 @@ int literal_count(set<string> minterms)
     return count;
 }
 
-};
+}; // QM class end
+
+// CC class, column-covering
+class CC
+{
+public:
+    set<string> minterms;
+    set<string> implicants;
+    set<string> essential;
+
+CC(set<string> m, set<string> imp)
+{
+    minterms = m;
+    implicants = imp;
+}
+
+bool imp_covers_min(string min, string imp)
+{
+    int n = imp.size();
+    for(int i = 0; i < n; i ++) {
+        if(min[i] != imp[i] && imp[i] != '-') 
+            return false;
+    }
+    return true;
+}
+
+set<string> check_column_cover()
+{
+
+    map<string, vector<string> > mp1; // minterms-implicants
+    map<string, vector<string> > mp2; // implicants-minterms
+    // build two map
+    for(auto i: minterms) {
+        // cout << "minterms: " << i << endl;
+        for(auto j: implicants) {
+            if(imp_covers_min(i, j)) {
+                mp1[i].push_back(j);
+                mp2[j].push_back(i);
+                // cout << j << endl;
+            }
+        }
+        if(mp1[i].size() == 1) essential.insert(mp1[i][0]); // this minterm only has this implicant
+    }
+    // go through essential, kick out its minterms
+    for(auto i: essential) {
+        for(auto j: mp2[i])
+            mp1.erase(j);
+    }
+    // naive: pick up remaining minterm's implicant 
+    for (auto const& x : mp1)
+        essential.insert(x.second[0]);
+
+    // return result
+    return essential;
+}
+}; // CC class end
 
 // Main function
 int main (int argc, char* argv[])
@@ -133,20 +236,46 @@ int main (int argc, char* argv[])
 
     // get inputs
     string temp;
-    set<string> minterms;
-    while(cin >> temp)
-    {
-        minterms.insert(temp);
+    set<string> minterms; // going to be reduced
+    
+    if(var >= 13) expand_flag = false;
+    // expand input or not
+    if(expand_flag) {
+        while(cin >> temp)
+        {   
+            set<string> st;
+            st = q.expand(temp);
+            for(auto i: st) minterms.insert(i);
+        }
     }
-    int times = 0;
+    else {
+        while(cin >> temp)
+        {
+            minterms.insert(temp);
+        }
+    }
+    set<string> minterms_copy(minterms); // non reduced minterms
+
+    // reduce by iteration until can't be reduced anymore
     do
     {
-        times ++;
         minterms=q.reduce(minterms);
     }while(!q.SetEqual(minterms,q.reduce(minterms)) );
 
-    cout << q.literal_count(minterms) << endl << minterms.size() << endl;
-    for(auto i: minterms)
-        cout << i << endl;
+    if(!cc_flag) {
+        // non column covering
+        cout << q.literal_count(minterms) << endl << minterms.size() << endl;
+        for(auto i: minterms)
+            cout << i << endl;
+    }
+    else {
+        // column covering
+        CC table(minterms_copy, minterms);
+        set<string> essential;
+        essential = table.check_column_cover();
+        cout << q.literal_count(essential) << endl << essential.size() << endl;
+        for(auto i: essential)
+            cout << i << endl;
+    }
     return 0;
 }
