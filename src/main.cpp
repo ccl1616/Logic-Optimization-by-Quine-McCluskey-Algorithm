@@ -19,10 +19,8 @@
 using namespace std;
 
 bool expand_flag = true;
-bool cc_flag = true; // column covering or not
 bool classify = true;
-// var expansion + QM + CC + good remaining implicant
-// greedy + unorder DS , stable version *************************************************************************
+// stable final version *************************************************************************
 
 // QM class
 class QM
@@ -348,7 +346,8 @@ int main (int argc, char* argv[])
     string temp;
     unordered_set<string> minterms; // minterms that are going to be reduced
     unordered_map<int, unordered_set<string> > c_minterms; // classify-minterms
-
+    
+    if(var >= 25) expand_flag = false;
     // expand input or not
     if(expand_flag) {
         while(cin >> temp)
@@ -386,20 +385,12 @@ int main (int argc, char* argv[])
         minterms = q.cm_to_unordered_set(c_minterms);
     }
 
-    if(!cc_flag) {
-        // non column covering
-        cout << q.literal_count(minterms) << endl << minterms.size() << endl;
-        for(auto i: minterms)
-            cout << i << endl;
-    }
-    else {
-        // column covering
-        CC table(minterms_copy, minterms);
-        unordered_set<string> essential;
-        essential = table.check_column_cover();
-        cout << q.literal_count(essential) << endl << essential.size() << endl;
-        for(auto i: essential)
-            cout << i << endl;
-    }
+    // column covering
+    CC table(minterms_copy, minterms);
+    unordered_set<string> essential;
+    essential = table.check_column_cover();
+    cout << q.literal_count(essential) << endl << essential.size() << endl;
+    for(auto i: essential)
+        cout << i << endl;
     return 0;
 }
