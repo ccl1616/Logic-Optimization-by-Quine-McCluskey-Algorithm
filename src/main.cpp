@@ -11,52 +11,45 @@
 #include <cstring>
 #include <math.h>
 #include <set>
+#include <unordered_set>
 #include <map>
+#include <unordered_map>
 #include <queue>
 #include <fstream>
 using namespace std;
 
 bool expand_flag = true;
 bool cc_flag = true; // column covering or not
-// var dependent expand + column covering; most stable version
+bool classify = true;
+// var expansion + QM + CC + good remaining implicant
+// greedy + unorder DS , stable version *************************************************************************
 
 // QM class
 class QM
 {
 public:
 
-int VARIABLES;
-string dontcares;
+int var, pro;
 
-QM(int a)
+QM(int v, int p)
 {
-   VARIABLES = a;
+   var = v;
+   pro = p;
+}
+// function to count the literals
+int literal_count(unordered_set<string> minterms)
+{
+    int count = 0;
+    for(auto i: minterms)
+        for(auto j: i) 
+            if(j != '-') count ++;
+    return count;
 }
 
-// expand the dont care
-void trans(set<string> &st)
+// function to expand the dont care
+unordered_set<string> expand(string in)
 {
-    for(auto s: st) {
-        for(int i = 0; i < s.size(); i ++) {
-            if(s[i] == '-') {
-                string b = s;
-                b[i] = '0'; st.insert(b);
-                b[i] = '1'; st.insert(b);
-                st.erase(s);
-            }
-        }
-    }
-}
-bool set_clean(set<string> st)
-{
-    for(auto i: st) {
-        if(i.find('-') < i.size()) return false;
-    }
-    return true;
-} 
-set<string> expand(string in)
-{
-    set<string> ret;
+    unordered_set<string> ret;
     queue<string> Q;
     // insert all terms into Q
     Q.push(in);
@@ -81,13 +74,13 @@ set<string> expand(string in)
 // expand the dont care end
 
 // function to check if two terms differ by just one bit
-bool isGreyCode(string a,string b)
+bool differ_by_one_bit(string a,string b)
 {
     int flag = 0;
     for(int i = 0; i < a.length(); i ++)
     {
         if(a[i] != b[i])
-        flag ++;
+            flag ++;
     }
     return (flag == 1);
 }
@@ -95,7 +88,7 @@ bool isGreyCode(string a,string b)
 // function to replace complements with '-'
 string replace_complements(string a,string b)
 {
-    string temp="";
+    string temp = "";
     for(int i = 0; i < a.length(); i ++)
     if(a[i] != b[i])
         temp = temp + "-";
@@ -104,22 +97,21 @@ string replace_complements(string a,string b)
 
     return temp;
 }
-
-// function to reduce minterms
-set<string> reduce(set<string> &minterms)
+// non-classified QM methods ===============================================================
+// function to reduce one QM column
+unordered_set<string> reduce(unordered_set<string> &minterms)
 {
-
-    set<string> newminterms;
-    set<string> checked;
+    unordered_set<string> newminterms;
+    unordered_set<string> checked;
     int n = minterms.size();
 
-    set<string>::iterator it = minterms.begin();
-    set<string>::iterator it_b = minterms.begin();
+    unordered_set<string>::iterator it = minterms.begin();
+    unordered_set<string>::iterator it_b = minterms.begin();
     for(it = minterms.begin(); it != minterms.end(); it ++) {
         for(it_b = minterms.begin(); it_b != minterms.end(); it_b ++) {
             string temp_a = (*it);
             string temp_b = (*it_b);
-            if(isGreyCode(temp_a, temp_b))
+            if(differ_by_one_bit(temp_a, temp_b))
             {
                 string replaced = replace_complements(temp_a, temp_b); 
                 newminterms.insert(replaced);
@@ -130,22 +122,21 @@ set<string> reduce(set<string> &minterms)
         }
     }
 
-    // appending non checked
+    // appending non checked terms
     for(it = minterms.begin(); it != minterms.end(); it ++){
         if(checked.find(*it) == checked.end())
             newminterms.insert(*it);
     }
     return newminterms;
 }
-
-// function to check if 2 sets are equal
-bool SetEqual(set<string> a,set<string> b)
+// function to check if 2 unordered_sets are equal
+bool unordered_setEqual(unordered_set<string> a,unordered_set<string> b)
 {
    if(a.size() != b.size())
       return false;
 
-    set<string>::iterator it;
-    set<string>::iterator it_b = b.begin();
+    unordered_set<string>::iterator it;
+    unordered_set<string>::iterator it_b = b.begin();
     for(it = a.begin(); it != a.end(); it ++, it_b ++)
     {
         string temp_a = (*it);
@@ -155,95 +146,214 @@ bool SetEqual(set<string> a,set<string> b)
     }
     return true;
 }
+// non-classified QM methods ends ===============================================================
 
-// count the literals
-int literal_count(set<string> minterms)
+// classified QM methods ===============================================================
+// function to classify unordered_set into unordered_map with groups
+unordered_map<int, unordered_set<string> > classifier(unordered_set<string> minterms)
 {
-    int count = 0;
-    for(auto i: minterms)
-        for(auto j: i) 
-            if(j != '-') count ++;
-    return count;
+    unordered_map<int, unordered_set<string> > ret;
+    for(auto i: minterms) {
+        int count = 0;
+        for(auto c: i) {
+            if(c == '1') count ++;
+        }
+        ret[count].insert(i);
+    }
+    return ret;
 }
-
-}; // QM class end
-
-// CC class, column-covering
-class CC
+// function to reduce one QM column (classified)
+unordered_map<int, unordered_set<string> > classify_reduce(unordered_map<int, unordered_set<string>> cm) // cm for classify_minterms
 {
-public:
-    set<string> minterms;
-    set<string> implicants;
-    set<string> essential;
+    unordered_map<int, unordered_set<string>> ret;
+    unordered_set<string> checked; // saving checked minterms
+    // cm, group by #ones
+    for(auto group: cm) {
+        int cur = group.first;
+        int next = cur + 1;
+        auto it = cm.find(next);
+        if(it == cm.end()) continue; // no next group exist
 
-CC(set<string> m, set<string> imp)
-{
-    minterms = m;
-    implicants = imp;
+        auto unordered_set1 = cm[cur];
+        auto unordered_set2 = cm[next];
+
+        // check pairs within these two unordered_sets
+        for(auto it1 = unordered_set1.begin(); it1 != unordered_set1.end(); it1 ++) {
+            for(auto it2 = unordered_set2.begin(); it2 != unordered_set2.end(); it2 ++) {
+                string temp_a = *it1;
+                string temp_b = *it2;
+                if(differ_by_one_bit(temp_a, temp_b))
+                {
+                    string replaced = replace_complements(temp_a, temp_b); 
+                    ret[ cur ].insert(replaced);
+
+                    checked.insert(temp_a);
+                    checked.insert(temp_b);
+                }
+            }
+        }
+    }
+    // appending non checked minterms
+    for(auto i: cm) {
+        for(auto j: i.second) {
+            if( checked.find(j) == checked.end() ) ret[i.first].insert(j);
+        }
+    }
+    return ret;
 }
-
-bool imp_covers_min(string min, string imp)
+// fundtion to check two unordered_maps are equal
+bool unordered_mapEqual(unordered_map<int, unordered_set<string>> a, unordered_map<int, unordered_set<string>> b)
 {
-    int n = imp.size();
-    for(int i = 0; i < n; i ++) {
-        if(min[i] != imp[i] && imp[i] != '-') 
+    if(a.size() != b.size())
+      return false;
+
+    unordered_map<int, unordered_set<string>>::iterator it;
+    unordered_map<int, unordered_set<string>>::iterator it_b = b.begin();
+    for(it = a.begin(); it != a.end(); it ++, it_b ++)
+    {
+        unordered_set<string> temp_a = (it->second);
+        unordered_set<string> temp_b = (it_b->second);
+        if( !unordered_setEqual(temp_a, temp_b) )
             return false;
     }
     return true;
 }
-
-set<string> check_column_cover()
+// flatten classified minterms to set of minterms 
+unordered_set<string> cm_to_unordered_set(unordered_map<int, unordered_set<string>> cm)
 {
+    unordered_set<string> ret;
+    for(auto group: cm) {
+        for(auto i: group.second) 
+            ret.insert(i);
+    }
+    return ret;
+}
+// classified QM methods end ===============================================================
 
-    map<string, vector<string> > mp1; // minterms-implicants
-    map<string, vector<string> > mp2; // implicants-minterms
-    // build two map
+}; // QMclass end
+
+// CC class (column covering & finding essential implicant & cover the rest minterms)
+class CC
+{
+public:
+    unordered_set<string> minterms;
+    unordered_set<string> implicants;
+    unordered_set<string> essential;
+    
+    unordered_map<string, vector<string> > mp1; // minterm-implicants
+    map<string, vector<string> > mp2; // implicant-minterms // order DOES matter here
+
+CC(unordered_set<string> m, unordered_set<string> imp)
+{
+    minterms = m;
+    implicants = imp;
+}
+// function to check whether a implicant covers a minterms
+bool imp_covers_min(string min, string imp)
+{
+    int n = imp.size();
+    for(int i = 0; i < n; i ++) {
+        if( (min[i] != imp[i]) && (imp[i] != '-') ) 
+            return false;
+    }
+    return true;
+}
+// after taking 'implicant', update the prime implicant chart
+void update_table(string implicant)
+{
+    // kill imp's minterms (delete col)
+    vector<string> todo(mp2[implicant]);
+    for(auto minterms: todo) {
+        for(auto imp: mp1[minterms]) {
+            // imp that has this minterms, its minterm recorder should be updated
+            vector<string>::iterator it = find(mp2[imp].begin(), mp2[imp].end(), minterms);
+            if(it != mp2[imp].end()){
+                mp2[imp].erase(it);
+            }
+        }
+        mp1.erase(minterms); // delete col
+    }
+    // kill this implicant (delete row)
+    mp2.erase(implicant);
+
+    // TODO: if any implicant cover 0 minterms -> erase this implicant
+    // for(auto i: mp2) {
+    //     if((int)i.second.size() == 0) mp2.erase(i.first);
+    // }
+
+    return;
+}
+// function to perform column covering
+unordered_set<string> check_column_cover()
+{
+    // build two unordered_map for the prime implicant table
+    // mp1: the col of chart, minterm-implicants
+    // mp2: the row of the chart, implicants-minterms
+
+    // find ESSENTIAL ======================================================
     for(auto i: minterms) {
-        // cout << "minterms: " << i << endl;
         for(auto j: implicants) {
             if(imp_covers_min(i, j)) {
                 mp1[i].push_back(j);
                 mp2[j].push_back(i);
-                // cout << j << endl;
             }
         }
-        if(mp1[i].size() == 1) essential.insert(mp1[i][0]); // this minterm only has this implicant
+        if(mp1[i].size() == 1)
+            essential.insert(mp1[i][0]); // this minterm only has this implicant(mp1[i][0])
     }
-    // go through essential, kick out its minterms
-    for(auto i: essential) {
-        for(auto j: mp2[i])
-            mp1.erase(j);
-    }
-    // naive: pick up remaining minterm's implicant 
-    for (auto const& x : mp1)
-        essential.insert(x.second[0]);
 
-    // return result
+    // remove essential from table
+    for(auto i: essential) {
+        update_table(i);
+    }
+    
+    if(!mp1.size()) return essential;
+
+    // after ESSENTIAL , pick up the remaining =============================
+    unordered_map<string, vector<string> >::iterator tmp;
+    // until all minterms are gone
+    while(!mp1.empty()) {
+        // get implicant that covers the most minterms
+        int max = -1;
+        string imp;
+        for(auto i: mp2) {
+            if((int)i.second.size() > max) {
+                max = i.second.size(); // max = #implicant
+                imp = i.first;
+            }
+        }
+
+        // take this implicant and update table
+        essential.insert(imp);
+        update_table(imp);
+    }
+    
     return essential;
 }
-}; // CC class end
+}; // CC end
 
-// Main function
+// main function
 int main (int argc, char* argv[])
 {
     string path(argv[1]);
     ifstream cin("./testcases/" + path); // depend on execution file relative path
+
     ofstream cout(argv[2]);
 
     int var, pro;
     cin >> var >> pro;
-    QM q(var);
+    QM q(var, pro);
 
     // get inputs
     string temp;
-    set<string> minterms; // going to be reduced
-    
-    if(var >= 13) expand_flag = false;
+    unordered_set<string> minterms; // minterms that are going to be reduced
+    unordered_map<int, unordered_set<string> > c_minterms; // classify-minterms
+
     // expand input or not
     if(expand_flag) {
         while(cin >> temp)
         {   
-            set<string> st;
+            unordered_set<string> st;
             st = q.expand(temp);
             for(auto i: st) minterms.insert(i);
         }
@@ -254,13 +364,27 @@ int main (int argc, char* argv[])
             minterms.insert(temp);
         }
     }
-    set<string> minterms_copy(minterms); // non reduced minterms
+    unordered_set<string> minterms_copy(minterms); // non reduced minterms
+
+    // classify
+    c_minterms = q.classifier(minterms);
 
     // reduce by iteration until can't be reduced anymore
-    do
-    {
-        minterms=q.reduce(minterms);
-    }while(!q.SetEqual(minterms,q.reduce(minterms)) );
+    if(!classify) {
+        do
+        {
+            minterms=q.reduce(minterms);
+        // }while(!q.unordered_setEqual(minterms, q.reduce(minterms)) );
+        }while(!(minterms == q.reduce(minterms)) );
+    }
+    else {
+        do
+        {
+            c_minterms = q.classify_reduce(c_minterms);
+        // } while ( !q.unordered_mapEqual( c_minterms, q.classify_reduce(c_minterms) ) );
+        } while ( !( c_minterms == q.classify_reduce(c_minterms) ) );
+        minterms = q.cm_to_unordered_set(c_minterms);
+    }
 
     if(!cc_flag) {
         // non column covering
@@ -271,7 +395,7 @@ int main (int argc, char* argv[])
     else {
         // column covering
         CC table(minterms_copy, minterms);
-        set<string> essential;
+        unordered_set<string> essential;
         essential = table.check_column_cover();
         cout << q.literal_count(essential) << endl << essential.size() << endl;
         for(auto i: essential)
