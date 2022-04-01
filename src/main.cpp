@@ -335,9 +335,9 @@ unordered_set<string> check_column_cover()
 // main function
 int main (int argc, char* argv[])
 {
-    string path(argv[1]);
-    ifstream cin("./testcases/" + path); // depend on execution file relative path
-
+    // string path(argv[1]);
+    // ifstream cin("./testcases/" + path); // depend on execution file relative path
+    ifstream cin(argv[1]);
     ofstream cout(argv[2]);
 
     int var, pro;
